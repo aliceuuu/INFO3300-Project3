@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+
+<!--
+
+CITATIONS:
+
+SOURCE #1.  Nitya and Rebecca's Project 2
+
+SOURCE #2.  Path Coordinate Generator for SVG Cylinder
+URL: https://observablehq.com/@pbeshai/svg-cylinder
+Author: Peter Beshai
+
+SOURCE #3. Path Coordinate Generator for SVG Star
+URL: https://www.smiffysplace.com/stars.html
+Author: Matthew Smith
+
+-->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/topojson.v2.min.js"></script>
+    <script src="https://unpkg.com/d3-simple-slider"></script>
+    <title>INFO project 3</title>
+
+    <style>
+        .state {
+            fill: white;
+        }
+
+        .outline {
+            stroke: lightgray;
+            stroke-width: 1px;
+            fill: none;
+        }
+
+        .mouseover {
+            stroke-width: 3px;
+            pointer-events: none;
+        }
+
+        svg text {
+            fill: Gray;
+            font: 12px century gothic;
+        }
+
+        body {
+            font-family: "century gothic";
+        }
+
+        rect.frame {
+            fill: white;
+            stroke: gray;
+            stroke-width: 1px;
+        }
+
+        g.textbox text {
+            font-family: "century gothic";
+            word-wrap: break-word;
+            font-size: 15px;
+            fill: black;
+        }
+
+        g.textbox text:first-child {
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        g.textbox text.instruction {
+            font-size: 12px;
+            font-weight: bold;
+            fill: gray;
+        }
+
+        text.annotations {
+            font-size: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+
+<body>
+    <div id="introdiv">
+        <svg id="title" width="1200" height="110"> </svg>
+        <svg id="description" width="1200" height="100"></svg>
+    </div>
+
+    <script>
+        //Title of our visualization page
+        let intro = d3.select("#title")
+        let introtitle = intro.append("g");
+
+        introtitle.append("rect")
+            .attr("x", 5)
+            .style("fill", "#06304b")
+            .attr("width", 1190)
+            .attr("height", 100)
+            .attr("rx", 15);
+
+        introtitle.append("text")
+            .attr("x", 637)
+            .style("text-anchor", "middle")
+            .attr("y", 70)
+            .style("fill", "#ffa633")
+            .style("font-size", "50px")
+            .text('"ET, Are You Out There?"');
+
+        //Subtext Under Our Title Describing Our Visualization Topic
+        let descriptionsvg = d3.select("#description");
+        let description = descriptionsvg.append("g").style("word-break", "break-all");
+
+        description.append("text")
+            .attr("x", 95)
+            .attr("y", 15)
+            .style("font-family", "bahnschrift")
+            .style("fill", "black")
+            .style("font-size", "18px")
+            .style("font-style", "bold")
+            .style("overflow-wrap", "break-word")
+            .text('As "The New Yorker" put across oh-so-eloquently in an article this month - flying saucers were once only referenced in jokes.');
+
+        description.append("text")
+            .attr("x", 15)
+            .attr("y", 35)
+            .style("font-family", "bahnschrift")
+            .style("fill", "black")
+            .style("font-size", "18px")
+            .style("overflow-wrap", "break-word")
+            .text("But with the Pentagon recently announcing the possible existence of extraterrestrials and legitimate sightings - confusing even experts amongst");
+
+        description.append("text")
+            .attr("x", 15)
+            .attr("y", 55)
+            .style("font-family", "bahnschrift")
+            .style("fill", "black")
+            .style("font-size", "18px")
+            .style("overflow-wrap", "break-word")
+            .text("themselves - it looks like the US government has started taking UFO sightings quite seriously. Keeping this in mind, we space nerds were curious");
+
+        description.append("text")
+            .attr("x", 15)
+            .attr("y", 75)
+            .style("font-family", "bahnschrift")
+            .style("fill", "black")
+            .style("font-size", "18px")
+            .style("overflow-wrap", "break-word")
+            .text("to understand trends in UFO sightings claimed across the US over the years; focusing on the alleged shape, year and location of each sighting.");
+
+        description.append("text")
+            .attr("x", 380)
+            .attr("y", 95)
+            .style("font-family", "bahnschrift")
+            .style("fill", "black")
+            .style("font-size", "18px")
+            .style("overflow-wrap", "break-word")
+            .text("As for whether Aliens exist...well, we'll let you decide!");
+
+    </script>
+
+    <body>
+        <svg id="map" height="600" width="1200"></svg>
+        <svg id=slider height="60" width="1200"></svg>
+        <script>
+            const requestData = async function () {
+                //LOAD PREPROCESSED DATA
+                let dataFiltered = await d3.csv("completeFilteredBefore2000.csv", d3.autoType);
+                console.log(dataFiltered);
+
+                //MAP SET UP
+                const svg = d3.select("#map");
+                const width = svg.attr("width");
+                const height = svg.attr("height");
+                const margin = { top: 20, right: 320, bottom: 20, left: 20 };
+                const mapWidth = width - margin.left - margin.right;
+                const mapHeight = height - margin.top - margin.bottom;
+
+
+                svg.append("rect")
+                    .attr("width", mapWidth)
+                    .attr("height", mapHeight)
+                    .attr("rx", 5)
+                    .attr("fill", "#06304b")
+                    .attr("stroke", "lightgray")
+                    .attr("stroke-width", 2)
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                const map = svg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                const stateData = await d3.json("./us-smaller.json");
+                var states = topojson.feature(stateData, stateData.objects.states);
+                var statesMesh = topojson.mesh(stateData, stateData.objects.states)
+
+                var projection = d3.geoAlbersUsa().fitSize([mapWidth, mapHeight], states);
+                var path = d3.geoPath().projection(projection);
+                let viewport = map.append("g");
+
+                viewport.selectAll("path.state").data(states.features)
+                    .join("path")
+                    .attr("class", "state")
+                    .attr("note", d => d.id)
+                    .attr("d", path);
+
+                viewport.append("path").datum(statesMesh)
+                    .attr("class", "outline")
+                    .attr("d", path);
+                //END MAP SETUP
+
+                //SHAPE CREATION
+                function drawDelta(d) {
+                    return "M" + 5 + "," + 0 + "L" + 10 + "," + 15 + "L" + 0 + "," + 15 + "L" + 5 + "," + 0 + "z"; //top
+                };
+
+                function drawCone(d) {
+
+                    return "M" + 5 + "," + 0 + "L" + 10 + "," + 17 + "L" + 0 + "," + 17 + "z" + "M 0, 17 a 5,2 1 1,1 10,0 a 5,2 1 1,1 -10,0 z";
+                };
+
+                function drawCylinder() {
+                    //Referenced Source #2 in generating path coordinates
+                    return "M 0,3 a 5,2.5 0,0,0 10 0 a 5,2.5 0,0,0 -10 0 l 0,13 a 5,2.5 0,0,0 10 0 l 0,-13";
+                };
+
+                function drawDisk() {
+                    return "M 0, 10 a 5,5 0 1,1 10,0 a 5,5 0 1,1 -10,0 z";
+
+                };
+
+                function drawFireball() {
+                    //Referenced Source #3 in generating path coordinates
+                    return "M 5.000 14.000 L 9.702 16.472 L 8.804 11.236 L 12.608 7.528 L 7.351 6.764 L 5.000 2.000 L 2.649 6.764 L -2.608 7.528 L 1.196 11.236 L 0.298 16.472 L 5.000 14.000";
+
+                };
+
+                function drawCross() {
+
+                    return "M5 0 L0 10 L5 20 L10 10 Z";
+
+                };
+
+                //returns shape path for a given shape
+                function getShape(d) {
+                    if (d === "disk") { return drawDisk(); } //blue
+                    else if (d === "delta") { return drawDelta(); } //pink
+                    else if (d === "cylinder") { return drawCylinder(); } //yellow
+                    else if (d === "cone") { return drawCone() } //red
+                    else if (d === "fireball") { return drawFireball(); } //green
+                    else if (d === "other") { return drawCross(); } //purple
+                    else if (d === "") { return drawCross(); } //purple
+                    else { return drawCross(); }  //purple
+                };
+
+                //returns appropriate color for a given shape
+                function fillShape(d) {
+                    if (d === "disk") { return "#b4f484"; } //green
+                    else if (d === "delta") { return "#87d4c2"; } //turquoise
+                    else if (d === "cylinder") { return "#a8aede"; } //light purple
+                    else if (d === "cone") { return "#8869b5"; } //med purple
+                    else if (d === "fireball") { return "#FFB6C1"; } //med purple
+                    else if (d === "other") { return "#400e63"; } //dark purple
+                    else if (d === "") { return "#400e63"; } //dark purple
+                    else { return "#400e63"; }  //dark purple
+                };
+                //END SHAPE CREATION
+
+                //LEGEND
+                svg.append("text")
+                    .attr("transform", `translate(${mapWidth + 50},${margin.top + 14})`)
+                    .style("font-size", "25px")
+                    .style("font-weight", "bold")
+                    .style("fill", "#06304b")
+                    .text("UFO Shape");
+
+                //Sub title for Pie Chart Legend
+                svg.append("text")
+                    .attr("transform", `translate(${mapWidth + 50},${margin.top + 19 + 14})`)
+                    .style("font-size", "15px")
+                    .text("Percentage " + "\xa0" + "|" + "\xa0" + " Value");
+
+                //Function to create Legend squares, text etc.
+
+                shapes = ["fireball", "disk", "delta", "cylinder", "cone", "other"]
+
+                //Source #1
+                function createLegend(data) {
+                    total = d3.sum(data);
+                    let legend = svg.append("g")
+                        .selectAll("g")
+                        .attr("class", "legend")
+                        .data(shapes)
+                        .enter().append("g")
+                        .attr("transform", (d, i) => `translate(${20},${margin.top + 14 + (i + .5) * 24})`);
+
+                    legend.append("path")
+                        .attr("d", d => {
+                            return getShape(d);
+                        })
+                        .attr("fill", d => {
+                            return fillShape(d);
+                        })
+                        .attr("transform", (d, i) => `translate(${mapWidth + 50},${margin.top})`);
+
+                    svg.selectAll("#legendLabel").remove();//clears the old legend label
+                    //calculates percentages and numbers
+                    legend.append("text")
+                        .attr("x", mapWidth + 70)
+                        .attr("y", 35)
+                        .attr("id", "legendLabel")
+                        .style("font-size", "15px")
+                        .text((d, i) => d + "\xa0\xa0" + d3.format(".1%")(data[i] / total) + "\xa0\xa0" + "|" + "\xa0\xa0" + data[i])
+                        .attr("text-anchor", "start");
+                };
+                //End Source #1
+                //END LEGEND
+
+                // TEXTBOX: FOR INSTRUCTION & UFO INFO
+                const boxHeight = 300;
+                const frame = svg.append("rect").attr("class", "frame")
+                    .attr("width", 1200 - mapWidth - 60)
+                    // we style this in <head>
+                    .attr("x", mapWidth + 50).attr("y", mapHeight - boxHeight + 20)
+                    .attr("rx", 5).attr("ry", 5)  // rx and ry round corners
+                    .attr("height", boxHeight);  // set width later
+                const textbox = svg.append("g").attr("class", "textbox").attr("transform", `translate(${mapWidth + 50 + 10},${mapHeight - boxHeight + 30})`)
+                updateMouseout();
+
+                //MAP ADD DATA
+                function filterOnYear(year) {
+                    entryDataFiltered = dataFiltered.filter(function (d) {
+                        if (year == 1950) {
+                            return Number(d.datetime) <= year;
+                        }
+                        else {
+                            return Number(d.datetime) === year;
+                        }
+                    });
+
+                    //calculate annual shape counts
+                    var disk = 0;
+                    var delta = 0;
+                    var cylinder = 0;
+                    var cone = 0;
+                    var fireball = 0;
+                    var other = 0;
+
+                    entryDataFiltered.forEach(d => {
+                        if (d.shape === "disk") { return disk += 1; }
+                        else if (d.shape === "delta") { delta += 1; }
+                        else if (d.shape === "cylinder") { cylinder += 1; }
+                        else if (d.shape === "cone") { cone += 1; }
+                        else if (d.shape === "fireball") { fireball += 1; }
+                        else if (d.shape === "other") { other += 1; }
+                    });
+
+                    createLegend([fireball, disk, delta, cylinder, cone, other]);
+
+                    updateMouseout();
+                    ufo = viewport.selectAll("g.shape").data(entryDataFiltered)
+                        .join(enter => {
+                            let g = enter.append("g").attr("class", "shape")
+                                .attr("transform", d => `translate(${projection([d["longitude"], d["latitude"]])} )`);
+
+                            g.append("path")
+                                .attr("class", "icon")
+                                .attr("id", d => d["datetime"])
+                                .attr("d", d => {
+                                    return getShape(d.shape);
+                                })
+                                .attr("fill", d => {
+                                    return fillShape(d.shape);
+                                })
+
+                        },
+                            update => {
+                                update.attr("transform", d => `translate(${projection([d["longitude"], d["latitude"]])} )`);
+                            },
+                            exit => {
+                                exit.remove();
+                            })
+                    viewport.selectAll(`.icon`)
+                        .attr("transform", `scale(${1 / transformK}, ${1 / transformK})`)
+                    viewport.selectAll(".shape").on("mouseover", function (d) {
+                        console.log(d3.select(this).datum())
+
+                        // d3.select(this).attr("transform", `scale(${2 / transformK}, ${2 / transformK})`)
+                        if (d3.select(this).datum().datetime == year)
+                            updateMouseover(d3.select(this).datum())
+                    })
+                    viewport.selectAll(".shape").on("mouseout", function () {
+                        // console.log(this)
+                        updateMouseout();
+                    });
+                };
+                //END MAP ADD DATA
+
+                //MAP ZOOM
+                let transformK = 1;
+                var zoom = d3.zoom()
+                    .scaleExtent([1, 100])
+                    .on("zoom", mapZoomed);
+                map.call(zoom)
+                map.call(zoom.transform, d3.zoomIdentity)
+
+                function mapZoomed({ transform }) {
+                    transformK = transform.k;
+                    viewport.attr("transform", transform.toString());
+                    viewport.select(".outline")
+                        .style("stroke-width", 2 / transform.k);
+                    viewport.selectAll(".icon")
+                        .attr("transform", `scale(${1 / transform.k}, ${1 / transform.k})`)
+                }
+
+                map.append("defs").append("clipPath")
+                    .attr("id", "chartClip")
+                    .append("rect").attr("x", 0)
+                    .attr("y", 0)
+                    .attr("width", mapWidth)
+                    .attr("height", mapHeight);
+
+                map.attr("clip-path", "url(#chartClip)");
+                //END MAP ZOOM
+
+                //YEAR SLIDER
+
+                //Source 1
+                filterOnYear(2000);
+
+                var yearSlider = d3.sliderHorizontal()
+                    .min(1950)
+                    .max(2000)
+                    .step(1)
+                    .tickFormat(d3.format(""))
+                    .width(mapWidth - 20)
+                    .value(2000)
+                    .on('onchange', value => {
+                        filterOnYear(value)
+                    });
+
+                d3.select("#slider")
+                    .append("g")
+                    .attr("class", "year slider")
+                    .attr("transform", "translate(30,15)")
+                    .call(yearSlider);
+                //End Source 1
+
+                //END YEAR SLIDER
+
+                // MOUSEOVER HANDLER
+
+                // HELPER FUNCTION
+                function jsUcfirst(string) {
+                    // This function is used to adjust the city name.
+                    let i = 0;
+                    string = string.charAt(0).toUpperCase() + string.slice(1);
+                    while (i <= string.length) {
+                        while (i < string.length && string[i] != " ") i = i + 1;
+                        if (i == string.length) break;
+                        string = string.slice(0, i + 1) + string.charAt(i + 1).toUpperCase() + string.slice(i + 2, string.length);
+                        i = i + 1;
+                    }
+                    return string;
+                }
+                // INSTRUCTION
+                function updateMouseout(d) {
+                    textbox.html('');
+
+                    textbox.append("text").text("HOW DO I USE THIS MAP?")
+                        .attr("x", 40).attr("y", 20)
+                        .style("font", "15px 'century gothic'")
+                        .style("fill", "gray");
+
+                    textbox.append("text").attr("class", "instruction").text("Filter sightings with the year-slider below.")
+                        .attr("x", 5).attr("y", 60);
+                    textbox.append("text").attr("class", "instruction").text("Hover over a map marker to learn more")
+                        .attr("x", 5).attr("y", 75);
+                    textbox.append("text").attr("class", "instruction").text("about the sighting. The marker's shape is")
+                        .attr("x", 5).attr("y", 90);
+                    textbox.append("text").attr("class", "instruction").text("representative of the described physical")
+                        .attr("x", 5).attr("y", 105);
+                    textbox.append("text").attr("class", "instruction").text("shape of the UFO. Zoom in to take a closer")
+                        .attr("x", 5).attr("y", 120);
+                    textbox.append("text").attr("class", "instruction").text("look at the map via clicks, scrolls or touch.")
+                        .attr("x", 5).attr("y", 135);
+                    textbox.append("text").attr("class", "instruction").text("Upon mousing over a marker, you will see")
+                        .attr("x", 5).attr("y", 160);
+                    textbox.append("text").attr("class", "instruction").text("the details of the sighting populate in this")
+                        .attr("x", 5).attr("y", 175);
+                    textbox.append("text").attr("class", "instruction").text("very box - try it out for yourself!")
+                        .attr("x", 5).attr("y", 190);
+
+                }
+                // UFO INFORMATION
+                function updateMouseover(d) {
+
+                    textbox.html('');  // shorthand to empty out an element
+
+                    let occur = `${d['datetime']} ${jsUcfirst(d['city'])}, ${d['state'].toUpperCase()}`;
+                    let time = `Duration: ${d['duration (hours/min)']}`;
+                    let comment = `Comment: ${d['comments']}`;
+                    let place1 = `Latitude: ${d['latitude']}`;
+                    let place2 = `Longitude: ${d['longitude']}`;
+                    let shape = `Shape: ${jsUcfirst(d['shape'])}`
+
+                    const textWidth = 1200 - mapWidth - 60;
+                    frame.attr("width", textWidth);
+                    textbox.attr("width", textWidth);
+
+                    textbox.append("text").text(occur)
+                        .attr("x", 0).attr("y", 20);
+                    textbox.append("text").text(time)
+                        .attr("x", 0).attr("y", 50)
+                    textbox.append("text").text(shape)
+                        .attr("x", 0).attr("y", 80);
+                    textbox.append("text").text(place1)
+                        .attr("x", 0).attr("y", 110);
+                    textbox.append("text").text(place2)
+                        .attr("x", 0).attr("y", 140);
+                    textbox.append("foreignObject").attr("x", 0).attr("y", 140).attr("width", textWidth - 20).attr("height", 150)
+                        .append("xhtml:div")
+                        .style("font", "15px 'century gothic'")
+                        .style("fill", "gray")
+                        .html(`<p>Comment: ${d['comments']}</p>`);
+                }
+                // END MOUSEOVER HANDLER
+            }
+            requestData();
+        </script>
+    </body>
+
+</html>

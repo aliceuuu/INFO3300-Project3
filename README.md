@@ -1,1 +1,3 @@
-# INFO3300-Project3
+# INFO5100Project3
+
+* Dataset: https://www.kaggle.com/NUFORC/ufo-sightings
